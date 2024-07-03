@@ -1,0 +1,23 @@
+((*- if nb.metadata.get('hu-style') is not none -*))
+  ((* set cell_style = 'style_hu_' + nb.metadata.get('hu-style') + '.tex.j2' *))
+((*- else -*))
+  ((* set cell_style = 'style_hu.tex.j2' *))
+((*- endif -*))
+
+
+((=- Default to the notebook output style -=))
+((*- if not cell_style is defined -*))
+    ((* set cell_style = 'style_jupyter.tex.j2' *))
+((*- endif -*))
+
+((=- Inherit from the specified cell style. -=))
+((* extends cell_style *))
+
+
+%===============================================================================
+% Latex Article
+%===============================================================================
+
+((*- block docclass -*))
+\documentclass[12pt,dvipsnames,a4paper]{article}
+((*- endblock docclass -*))

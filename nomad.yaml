@@ -1,0 +1,31 @@
+client:
+  url: 'http://127.0.0.1/nomad-oasis/api'
+
+services:
+  api_base_path: '/nomad-oasis'
+#  admin_user_id: 'batesjam'
+  api_host: 'localhost'
+
+oasis:
+  is_oasis: true
+  uses_central_user_management: true
+
+north:
+  jupyterhub_crypt_key: 'b9ac94274da5d639e20512e4bc1a104f76ef50c8b26d58f2aaebd291a90a169b'
+  hub_connect_ip: 172.17.0.1
+
+meta:
+  deployment: 'oasis'
+  deployment_url: 'https://localhost/nomad-oasis/api'
+  maintainer_email: 'james.h.bates@gmail.com'
+
+logtransfer:
+  enabled: false
+
+mongo:
+  db_name: nomad_v0_8
+
+rabbitmq:
+  user: 'guest'
+  password: 'guest'
+

@@ -1,0 +1,19 @@
+Instructions:
+1. create and activate venv where nomad oasis will run. Currently only python 3.10 will work
+2. clone nomad-FAIR/nomad-lab somewhere
+3. apply nomad-patch.diff
+4. run scripts/setup_dev_env.sh
+5. run scripts/build_sdist.sh to build frontend
+5. install nginx, rabbitmq, docker, mongodb, elasticsearch. use nginx config from this repo
+6. create oasis dir somewhere, install nomad.yaml from this repo
+7. in GPRSchemas, pip install -e .
+8. in root-dir of this repo, docker build -t gpr/jupyter .
+9. from oasis dir, run scripts/run.sh
+10. from oasis dir, run scripts/run-worker.sh
+11. copy/symlink nomad.yaml to nomad-FAIR git working copy
+12. from nomad-FAIR working copy, run scripts/run-hub.sh
+13. in Nomad ui, create upload, and add contents of P0_Upload in this repo
+14. Add an entry archive based on schema 'P0_Fadenpendel' to upload. Note entry_id of this archive.
+15. open P0_EditExperiment.ipynb using 'jupyter tool' Replace entry_id and save nb. Stop 'jupyter tool'
+16. open P0_EditExperiment.ipynb again using 'voila tool'. This is student view during experiment.
+17. open P0_Fadenpendel.ipynb using 'jupyter tool'. Replace entry_id and save nb. This is student view during resutls analysis

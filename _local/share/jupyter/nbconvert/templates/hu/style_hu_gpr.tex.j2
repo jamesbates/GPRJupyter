@@ -1,0 +1,56 @@
+((*- extends 'style_hu.tex.j2' -*))
+
+
+((* block courseinfo *))
+\colorlet{mycolor}{green!20!gray}
+\colorlet{mybackground}{green!15!white}
+((*- set nb_course = nb.metadata.get('course', 'Grundpraktikum') -*))
+\def\thecourse{((( nb_course | escape_latex )))}
+((*- set nb_semester = nb.metadata.get('semester', '') -*))
+\def\thesemester{((( nb_semester | escape_latex )))}
+((* endblock courseinfo *))
+
+((* block titleformats *))
+((( super() )))
+\titleformat{\section}{\normalfont\Large\bfseries\sffamily\color{mycolor}}{\thesection~}{0.3em}{}
+((* endblock titleformats *))
+
+((* block input_group *))
+((* endblock input_group *))
+
+((* block packages *))
+((( super() )))
+
+\DeclareCaptionFormat{gpr}
+{%
+    {\small #1#2#3}
+}
+\captionsetup[table]{position=top,format=gpr,skip=2pt}
+\captionsetup[figure]{position=bottom,format=gpr,skip=2pt}
+
+((* endblock packages *))
+
+((* block data_png *))
+%\begin{figure}[h]
+((( super() )))
+%\vspace*{-2em}
+%\caption{(((cell.metadata.caption)))}
+%\label{(((cell.metadata.label)))}
+%\end{figure}
+((* endblock data_png *))
+
+((* block data_text *))
+((* endblock *))
+
+((* block stream *))
+((* endblock *))
+
+((* block markdowncell *))
+  ((*- if (cell.metadata['abstract'] == 1) -*))
+    \renewcommand{\abstractname}{\sffamily\large\color{mycolor}Abstract}
+    \begin{abstract}\noindent% ((( super() ))) \end{abstract}
+  ((*- else -*))
+    ((( super() )))
+  ((*- endif -*))
+((* endblock markdowncell *))
+
