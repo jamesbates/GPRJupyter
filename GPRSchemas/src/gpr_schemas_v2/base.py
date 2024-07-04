@@ -13,12 +13,12 @@ class Experiment(MSection):
   )
 
 class Participant(MSection):
-  partcipant_name = Quantity(
+  participant_name = Quantity(
     type=str,
     description='Name',
     a_eln=ELNAnnotation(component='StringEditQuantity')
   )
-  partcipant_matrikel = Quantity(
+  participant_matrikel = Quantity(
     type=str,
     description='Matrikelnr',
     a_eln=ELNAnnotation(component='StringEditQuantity')

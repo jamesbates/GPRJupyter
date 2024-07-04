@@ -1,6 +1,6 @@
 import __main__
 
-show_out = True
+show_out = 'show_out' in dir(__main__)
 import ipywidgets as w
 import qgridnext as qg
 from traitlets import All
@@ -39,11 +39,11 @@ with out:
 
   auth = nomad.client.api.Auth()
 
-from IPython.display import Latex, Markdown
+from IPython.display import Latex, Markdown, HTML
 
-def buildDataFrame(data):
-    df=pd.DataFrame(data)
-    df.index.name='Messung'
+def buildDataFrame(data, index_name ='Messung'):
+    df=data if isinstance(data, pd.DataFrame) else pd.DataFrame(data)
+    df.index.name=index_name
     df.index+=1
     return df
 
@@ -55,14 +55,17 @@ def readExperiment():
         username=nomad.config.client.user,
         password=nomad.config.client.password
     ).download(1)[0]
-  
 
 def writeExperiment():
     global experimentArchive
+    global lab_participants
+    dataToWrite = experimentArchive.data.m_to_dict()
+    dataToWrite['lab_participant'] = lab_participants
+    print(dataToWrite)
     response = nomad.client.api.put(f"uploads/{experimentArchive.metadata.upload_id}/raw/",
         auth=auth,
         params={"file_name":experimentArchive.metadata.mainfile, "wait_for_processing": True, "include_archive": False, "entry_hash": experimentArchive.metadata.entry_hash},
-        json={'data': experimentArchive.data.m_to_dict()}
+        json={'data': dataToWrite}
     )
     if response.status_code == 200:
         return True
@@ -80,6 +83,17 @@ wSaved = w.Valid(
     value=True,
     layout={'width': '500px', 'height': '50px'}
 )
+
+participants = experimentArchive.data.m_to_dict()['lab_participant'] if experimentArchive.data.lab_participant else [{'participant_name': '', 'participant_matrikel': ''}]
+wParticipants = qg.show_grid(
+    buildDataFrame(
+        pd.DataFrame(participants).rename(columns={'participant_name': 'Name', 'participant_matrikel': 'Matrikelnr.'}),
+        index_name = 'Teilnehmer'
+    ),
+    show_toolbar=True,
+    grid_options = {'fullWidthRows': False, 'minVisibleRows': 2}
+)
+
 wSinglePeriodLength = w.FloatText(
     value=experimentArchive.data.singlePeriod.length.magnitude,
     description='Pendellänge [m]:',
@@ -88,16 +102,18 @@ wSinglePeriodLength = w.FloatText(
 )
 wSinglePeriodAmplitude = w.FloatText(
     value=experimentArchive.data.singlePeriod.amplitude.magnitude,
-    description='Auslenkung [$\\degree$]:',
+    description='Auslenkung [°]:',
     disabled=False,
     style={'description_width': '100px'}
 )
 wSinglePeriodZeroPoint = qg.show_grid(
     buildDataFrame({'Periode [s]': experimentArchive.data.singlePeriod.m_to_dict()['zeroPoint']}),
+    grid_options = {'fullWidthRows': False},
     show_toolbar=True
 )
 wSinglePeriodReversePoint = qg.show_grid(
     buildDataFrame({'Periode [s]': experimentArchive.data.singlePeriod.m_to_dict()['reversePoint']}),
+    grid_options = {'fullWidthRows': False},
     show_toolbar=True
 )
 wSinglePeriodNotes = w.Textarea(
@@ -118,16 +134,18 @@ wTenPeriodsLength = w.FloatText(
 )
 wTenPeriodsAmplitude = w.FloatText(
     value=experimentArchive.data.tenPeriods.amplitude.magnitude,
-    description='Auslenkung [$\\degree$]:',
+    description='Auslenkung [°]:',
     disabled=False,
     style={'description_width': '100px'}
 )
 wTenPeriodsZeroPoint = qg.show_grid(
     buildDataFrame({'10 Perioden [s]': experimentArchive.data.tenPeriods.m_to_dict()['zeroPoint']}),
+    grid_options = {'fullWidthRows': False},
     show_toolbar=True
 )
 wTenPeriodsReversePoint = qg.show_grid(
     buildDataFrame({'10 Perioden [s]': experimentArchive.data.tenPeriods.m_to_dict()['reversePoint']}),
+    grid_options = {'fullWidthRows': False},
     show_toolbar=True
 )
 wTenPeriodsNotes = w.Textarea(
@@ -147,9 +165,10 @@ wPeriodVsAmplitudeLength = w.FloatText(
 )
 wPeriodVsAmplitudeData = qg.show_grid(
     buildDataFrame({
-        'Amplitude [$\\degree$]': experimentArchive.data.periodVsAmplitude.m_to_dict()['amplitude'],
+        'Amplitude [°]': experimentArchive.data.periodVsAmplitude.m_to_dict()['amplitude'],
         '10 Perioden [s]': experimentArchive.data.periodVsAmplitude.m_to_dict()['period']
     }),
+    grid_options = {'fullWidthRows': False},
     show_toolbar=True
 )
 wPeriodVsAmplitudeNotes = w.Textarea(
@@ -163,7 +182,7 @@ wPeriodVsAmplitudeNotes = w.Textarea(
 
 wPeriodVsLengthAmplitude = w.FloatText(
     value=experimentArchive.data.periodVsLength.amplitude.magnitude,
-    description='Amplitude [$\\degree$]:',
+    description='Amplitude [°]:',
     disabled=False,
     style={'description_width': '100px'}
 )
@@ -172,6 +191,7 @@ wPeriodVsLengthData = qg.show_grid(
         'Pendellänge [m]': experimentArchive.data.periodVsLength.m_to_dict()['length'],
         '10 Perioden [s]': experimentArchive.data.periodVsLength.m_to_dict()['period']
     }),
+    grid_options = {'fullWidthRows': False},
     show_toolbar=True
 )
 wPeriodVsLengthNotes = w.Textarea(
@@ -184,12 +204,14 @@ wPeriodVsLengthNotes = w.Textarea(
 )
 
 
-#@out.capture(clear_output=True)
+@out.capture(clear_output=True)
 def updateData(change):
     global experimentArchive
+    global lab_participants
     
     wSaved.value = False
     print(f"L Received change event, change/event = {change}")
+    lab_participants = wParticipants.get_changed_df().rename(columns={'Name': 'participant_name', 'Matrikelnr.': 'participant_matrikel'}).to_dict(orient='records')
     experimentArchive.data.singlePeriod.amplitude = wSinglePeriodAmplitude.value  
     experimentArchive.data.singlePeriod.length = wSinglePeriodLength.value  
     experimentArchive.data.singlePeriod.zeroPoint = wSinglePeriodZeroPoint.get_changed_df()['Periode [s]']  
@@ -202,7 +224,7 @@ def updateData(change):
     experimentArchive.data.tenPeriods.notes = wTenPeriodsNotes.value  
     experimentArchive.data.periodVsAmplitude.length = wPeriodVsAmplitudeLength.value  
     experimentArchive.data.periodVsAmplitude.period = wPeriodVsAmplitudeData.get_changed_df()['10 Perioden [s]']  
-    experimentArchive.data.periodVsAmplitude.amplitude = wPeriodVsAmplitudeData.get_changed_df()['Amplitude [$\\degree$]']  
+    experimentArchive.data.periodVsAmplitude.amplitude = wPeriodVsAmplitudeData.get_changed_df()['Amplitude [°]']  
     experimentArchive.data.periodVsAmplitude.notes = wPeriodVsAmplitudeNotes.value  
     experimentArchive.data.periodVsLength.amplitude = wPeriodVsLengthAmplitude.value  
     experimentArchive.data.periodVsLength.period = wPeriodVsLengthData.get_changed_df()['10 Perioden [s]']  
@@ -212,6 +234,12 @@ def updateData(change):
     if writeExperiment():
         readExperiment()
 
+
+        participants = experimentArchive.data.m_to_dict()['lab_participant'] if experimentArchive.data.lab_participant else [{'participant_name': '', 'participant_matrikel': ''}]
+        wParticipants.df = buildDataFrame(
+            pd.DataFrame(participants).rename(columns={'participant_name': 'Name', 'participant_matrikel': 'Matrikelnr.'}),
+            index_name = 'Teilnehmer'
+        )
         wSinglePeriodAmplitude.value = experimentArchive.data.singlePeriod.amplitude.magnitude
         wSinglePeriodLength.value = experimentArchive.data.singlePeriod.length.magnitude
         wSinglePeriodZeroPoint.df = buildDataFrame({'Periode [s]': experimentArchive.data.singlePeriod.zeroPoint})
@@ -224,7 +252,7 @@ def updateData(change):
         wTenPeriodsNotes.value = experimentArchive.data.tenPeriods.notes
         wPeriodVsAmplitudeLength.value = experimentArchive.data.periodVsAmplitude.length.magnitude
         wPeriodVsAmplitudeData.df = buildDataFrame({
-            'Amplitude [$\\degree$]': experimentArchive.data.periodVsAmplitude.m_to_dict()['amplitude'],
+            'Amplitude [°]': experimentArchive.data.periodVsAmplitude.m_to_dict()['amplitude'],
             '10 Perioden [s]': experimentArchive.data.periodVsAmplitude.m_to_dict()['period']
         })
         wPeriodVsAmplitudeNotes.value = experimentArchive.data.periodVsAmplitude.notes  
@@ -244,28 +272,49 @@ display(
     wSaved,
     Markdown(f'''
 
+## Teilnehmer
+'''),
+    wParticipants,
+    HTML(f"<br/><br/><br/>")
+)
+
+oSinglePeriod = w.Output()
+with oSinglePeriod:
+  display(
+    Markdown(f'''
+
 ## Einzelperiodenmessung
 '''),
     wSinglePeriodLength,
     wSinglePeriodAmplitude,
-    Markdown('Periodenmessung beim Nullpunktdurchgang'),
+    Markdown('### Periodenmessung beim Nullpunktdurchgang'),
     wSinglePeriodZeroPoint,
-    Markdown('Periodenmessung beim Umkehrpunkt'),
+    Markdown('### Periodenmessung beim Umkehrpunkt'),
     wSinglePeriodReversePoint,
     wSinglePeriodNotes,
-    wSaved,
+    wSaved
+  )
+
+oTenPeriods = w.Output()
+with oTenPeriods:
+  display(
     Markdown(f'''
 
 ## 10-Periodenmessung
 '''),
     wTenPeriodsLength,
     wTenPeriodsAmplitude,
-    Markdown('10-Periodenmessung beim Nullpunktdurchgang'),
+    Markdown('### 10-Periodenmessung beim Nullpunktdurchgang'),
     wTenPeriodsZeroPoint,
-    Markdown('10-Periodenmessung beim Umkehrpunkt'),
+    Markdown('### 10-Periodenmessung beim Umkehrpunkt'),
     wTenPeriodsReversePoint,
     wTenPeriodsNotes,
-    wSaved,
+    wSaved
+  )
+
+oPeriodVsAmplitude = w.Output()
+with oPeriodVsAmplitude:
+  display(
     Markdown(f'''
 
 ## Amplitudenabhängige Periodenmessung
@@ -273,7 +322,12 @@ display(
     wPeriodVsAmplitudeLength,
     wPeriodVsAmplitudeData,
     wPeriodVsAmplitudeNotes,
-    wSaved,
+    wSaved
+  )
+
+oPeriodVsLength = w.Output()
+with oPeriodVsLength:
+  display(
     Markdown(f'''
 
 ## Längenabhängige Periodenmessung
@@ -282,9 +336,14 @@ display(
     wPeriodVsLengthData,
     wPeriodVsLengthNotes,
     wSaved
+  )
 
-)
+tabs = w.Tab()
+tabs.children = [oSinglePeriod,oTenPeriods,oPeriodVsAmplitude,oPeriodVsLength]
+tabs.titles = ['Einzelperioden','10-Perioden','Amplitudenabhängigkeit','Längenabhängigkeit']
+display(tabs)
 
+wParticipants.on('cell_edited', lambda e,w: updateData(e))
 wSinglePeriodLength.observe(handler=updateData, names='value') 
 wSinglePeriodAmplitude.observe(handler=updateData, names='value')
 wSinglePeriodZeroPoint.on('cell_edited', lambda e,w: updateData(e))
@@ -301,3 +360,4 @@ wPeriodVsAmplitudeNotes.observe(handler=updateData, names='value')
 wPeriodVsLengthAmplitude.observe(handler=updateData, names='value')
 wPeriodVsLengthData.on('cell_edited', lambda e,w: updateData(e))
 wPeriodVsLengthNotes.observe(handler=updateData, names='value')
+
