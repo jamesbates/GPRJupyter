@@ -1,4 +1,4 @@
-FROM "alpine:3.19"
+FROM "alpine:3.19" AS thestage
 ENV VIRTUAL_ENV /opt/pyvenv
 ENV NB_USER jovyan
 ENV HOME /home/${NB_USER}
@@ -40,6 +40,11 @@ RUN rm -r /tmp/gpr /tmp/GPRSchemas /tmp/nomad-FAIR
 USER root
 RUN apk add texlive texmf-dist-latexextra texmf-dist-fontsextra texmf-dist-pictures pandoc
 RUN apk del build-base git python3-dev linux-headers
+
+FROM scratch
+COPY --from=thestage / /
+ENV NB_USER jovyan
+ENV HOME /home/${NB_USER}
 USER ${NB_USER}
 WORKDIR ${HOME}
 EXPOSE 8888
