@@ -1,0 +1,46 @@
+FROM "alpine:3.19"
+ENV VIRTUAL_ENV /opt/pyvenv
+ENV NB_USER jovyan
+ENV HOME /home/${NB_USER}
+ENV MAKEFLAGS "-j5"
+
+COPY gpr /tmp/gpr
+COPY GPRSchemas /tmp/GPRSchemas
+COPY _jupyter ${HOME}/.jupyter
+COPY _local/share/jupyter/nbconvert ${HOME}/.local/share/jupyter/nbconvert
+
+RUN apk add python3 hdf5-dev libgomp build-base git python3-dev linux-headers
+RUN adduser -D -G users ${NB_USER} && mkdir -p ${VIRTUAL_ENV} && \
+    chown -R ${NB_USER}:users ${VIRTUAL_ENV} \
+				/tmp/gpr \
+				/tmp/GPRSchemas \
+				${HOME}/.local/share/jupyter \
+				${HOME}/.jupyter
+
+USER ${NB_USER}
+
+RUN python -m venv ${VIRTUAL_ENV}
+ENV PATH "${VIRTUAL_ENV}/bin:$PATH"
+RUN pip install --no-cache 'jupyterhub==4.*' notebook ipywidgets qgridnext voila
+
+WORKDIR /tmp
+RUN git clone https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR.git
+WORKDIR /tmp/nomad-FAIR
+RUN git submodule update --init --recursive
+RUN pip --no-cache-dir install .
+
+WORKDIR /tmp/gpr
+RUN pip --no-cache-dir install .
+
+WORKDIR /tmp/GPRSchemas
+RUN pip --no-cache-dir install .
+
+RUN rm -r /tmp/gpr /tmp/GPRSchemas /tmp/nomad-FAIR
+
+USER root
+RUN apk add texlive texmf-dist-latexextra texmf-dist-fontsextra texmf-dist-pictures pandoc
+RUN apk del build-base git python3-dev linux-headers
+USER ${NB_USER}
+WORKDIR ${HOME}
+EXPOSE 8888
+CMD jupyterhub-singleuser --ip 0.0.0.0
