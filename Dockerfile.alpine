@@ -44,8 +44,10 @@ RUN apk del build-base git python3-dev linux-headers
 FROM scratch
 COPY --from=thestage / /
 ENV NB_USER jovyan
-ENV HOME /home/${NB_USER}
 USER ${NB_USER}
+ENV VIRTUAL_ENV /opt/pyvenv
+ENV HOME /home/${NB_USER}
+ENV PATH "${VIRTUAL_ENV}/bin:$PATH"
 WORKDIR ${HOME}
 EXPOSE 8888
 CMD jupyterhub-singleuser --ip 0.0.0.0
