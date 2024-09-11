@@ -1,0 +1,10 @@
+Formel nummerieren, referenzieren
+Citations
+Footnotes
+Import figures, numbering, referencing
+Tables, numbering, referencing
+Sections, Subsectons, referencing
+Captions: straight indices
+
+
+
